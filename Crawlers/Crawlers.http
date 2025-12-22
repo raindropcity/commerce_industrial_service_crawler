@@ -1,0 +1,6 @@
+@Crawlers_HostAddress = http://localhost:5015
+
+GET {{Crawlers_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
