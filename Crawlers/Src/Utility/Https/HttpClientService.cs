@@ -45,6 +45,41 @@ public class HttpClientService : IHttpClientService
     }
 
     /// <summary>
+    /// http post
+    /// </summary>
+    /// <param name="requestUri">請求網址</param>
+    /// <param name="requestBody">http body</param>
+    /// <param name="timeout">逾時(秒)</param>
+    /// <typeparam name="TRequest">請求T</typeparam>
+    /// <typeparam name="TResponse">回應T</typeparam>
+    /// <returns>Task{TResponse}</returns>
+    public async Task<TResponse> PostAsJsonAsync<TRequest, TResponse>(string requestUri, TRequest requestBody, HttpClient client = null, double timeout = 30)
+        where TRequest : class
+        where TResponse : class
+    {
+        var httpClient = client ?? this.GetHttpClient(timeout);
+        var response = await httpClient.PostAsJsonAsync(requestUri, requestBody);
+
+        if (response.IsSuccessStatusCode == false)
+        {
+            var message = await response.Content.ReadAsStringAsync();
+            _logger.LogError("PostAsJsonAsyncV2 Error. Response Body: {Message}", message);
+            response.EnsureSuccessStatusCode();
+        }
+
+        return await response.Content.ReadFromJsonAsync<TResponse>(JsonOptions.Web);
+    }
+
+    /// <inheritdoc />
+    public async Task<string> GetStringAsync(string requestUri, HttpClient client = null, double timeout = 30)
+    {
+        var httpClient = client ?? this.GetHttpClient(timeout);
+        var html = await httpClient.GetStringAsync(requestUri);
+
+        return html;
+    }
+
+    /// <summary>
     /// 取得http client
     /// </summary>
     /// <param name="timeout">逾時(秒)</param>

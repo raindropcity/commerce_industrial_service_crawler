@@ -13,6 +13,7 @@ public static class IServiceCollectionExtensions
 
         // Service
         services.AddScoped<ICompaniesDataService, CompaniesDataService>();
+        services.AddScoped<TpcaScraperService>();
 
         return services;
     }
