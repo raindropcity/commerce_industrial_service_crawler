@@ -62,15 +62,21 @@ public class TpcaScraperService
         );
     }
 
-    public async Task<FileStreamResult> ScrapeAsync()
+    public async Task<FileStreamResult> ScrapeAsync(TpcaRequest input)
     {
         // 1. 以下 POST 請求，可以直接取得 memberIds
         var url = "https://www.tpca.org.tw/Industry/PagingMember";
-        var request = new TpcaPostMemberIdRequest();
-        var postMemberIdResponse = await _httpClientService.PostAsJsonAsync<TpcaPostMemberIdRequest, TpcaPostMemberIdResponse>(url, request, _http);
+        var industryItemIds = input.IndustryItemIds;
+        var memberIds = new List<int>();
 
+        foreach (var industryItemId in industryItemIds)
+        {
+            _logger.LogInformation("IndustryItemId = {industryItemId}", industryItemId);
+            var request = TpcaPostMemberIdRequest.Create(industryItemId);
+            var postMemberIdResponse = await _httpClientService.PostAsJsonAsync<TpcaPostMemberIdRequest, TpcaPostMemberIdResponse>(url, request, _http);
 
-        var memberIds = postMemberIdResponse.Rows.Select(x => x.MemberID).ToList();
+            memberIds.AddRange(postMemberIdResponse.Rows.Select(x => x.MemberID));
+        }
 
         _logger.LogInformation("Found {Count} memberIds", memberIds.Count);
 

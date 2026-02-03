@@ -2,5 +2,5 @@
 
 public class TpcaRequest
 {
-    public string Url { get; set; }
+    public List<int> IndustryItemIds { get; set; }
 }

@@ -31,11 +31,12 @@ public class CompaniesDataController : ControllerBase
         return await service.GetByCsvFileAsync(csvFile);
     }
 
-    [HttpGet]
+    [HttpPost]
     [Route("tpca/by-url")]
     public async Task<FileStreamResult> GetByUrlAsync(
-        [FromServices] TpcaScraperService service)
+        [FromServices] TpcaScraperService service,
+        [FromBody] TpcaRequest request)
     {
-        return await service.ScrapeAsync();
+        return await service.ScrapeAsync(request);
     }
 }
