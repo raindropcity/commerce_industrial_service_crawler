@@ -1,10 +1,10 @@
-﻿using Crawlers.BusinessLogics.Models.Companies;
+﻿using Crawlers.BusinessLogics.Models.TPCA;
 using Crawlers.Src.Utility.Https;
 using HtmlAgilityPack;
 using Microsoft.AspNetCore.Mvc;
 using System.Text;
 
-namespace Crawlers.BusinessLogics.Services;
+namespace Crawlers.BusinessLogics.Services.TPCA;
 
 public class TpcaScraperService
 {
@@ -128,7 +128,7 @@ public class TpcaScraperService
         var localPath = Path.GetTempPath();
         var csvFileName = "TpcaData.csv";
         var csvFilePath = Path.Combine(localPath, csvFileName);
-        await System.IO.File.WriteAllTextAsync(csvFilePath, responseCsvContent.ToString());
+        await File.WriteAllTextAsync(csvFilePath, responseCsvContent.ToString());
 
         var memory = new MemoryStream();
         using (var stream = new FileStream(csvFilePath, FileMode.Open))
@@ -138,7 +138,7 @@ public class TpcaScraperService
         memory.Position = 0;
 
         // 4. 刪除臨時檔案
-        System.IO.File.Delete(csvFilePath);
+        File.Delete(csvFilePath);
 
         return new FileStreamResult(memory, "text/csv") { FileDownloadName = csvFileName };
     }

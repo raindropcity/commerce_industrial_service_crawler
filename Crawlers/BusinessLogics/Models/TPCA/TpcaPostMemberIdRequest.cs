@@ -1,4 +1,4 @@
-﻿namespace Crawlers.BusinessLogics.Models.Companies;
+﻿namespace Crawlers.BusinessLogics.Models.TPCA;
 
 public class TpcaPostMemberIdRequest
 {

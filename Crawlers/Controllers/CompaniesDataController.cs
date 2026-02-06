@@ -1,6 +1,7 @@
-using Crawlers.BusinessLogics.Models.Companies;
-using Crawlers.BusinessLogics.Services;
+using Crawlers.BusinessLogics.Models.TPCA;
 using Crawlers.BusinessLogics.Services.Interfaces;
+using Crawlers.BusinessLogics.Services.TEEIA;
+using Crawlers.BusinessLogics.Services.TPCA;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Crawlers.Controllers;
@@ -21,7 +22,7 @@ public class CompaniesDataController : ControllerBase
     /// </summary>
     /// <param name="service">The service.</param>
     /// <param name="csvFile">The CSV file.</param>
-    /// <returns></returns>
+    /// <returns>公司聯絡資料 CSV 檔</returns>
     [HttpPost]
     [Route("by-csv")]
     public async Task<FileStreamResult> GetByCsvFileAsync(
@@ -31,12 +32,31 @@ public class CompaniesDataController : ControllerBase
         return await service.GetByCsvFileAsync(csvFile);
     }
 
+    /// <summary>
+    /// 傳入 IndustryItemIds 清單，自動化抽取 TPCA 網站的公司聯絡資料
+    /// </summary>
+    /// <param name="service">The service.</param>
+    /// <param name="request"></param>
+    /// <returns>公司聯絡資料 CSV 檔</returns>
     [HttpPost]
     [Route("tpca/by-url")]
-    public async Task<FileStreamResult> GetByUrlAsync(
+    public async Task<FileStreamResult> GetTpcaInfoByUrlAsync(
         [FromServices] TpcaScraperService service,
         [FromBody] TpcaRequest request)
     {
         return await service.ScrapeAsync(request);
+    }
+
+    /// <summary>
+    /// 自動化至 TEEIA 網站抽取公司聯絡資料
+    /// </summary>
+    /// <param name="service">The service.</param>
+    /// <returns>公司聯絡資料 CSV 檔</returns>
+    [HttpGet]
+    [Route("teeia")]
+    public async Task<FileStreamResult> GetTeeiaInfoByHtml(
+        [FromServices] TeeiaScraperService service)
+    {
+        return await service.ScrapeAsync();
     }
 }

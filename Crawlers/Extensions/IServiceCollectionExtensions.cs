@@ -1,5 +1,7 @@
 ﻿using Crawlers.BusinessLogics.Services;
 using Crawlers.BusinessLogics.Services.Interfaces;
+using Crawlers.BusinessLogics.Services.TEEIA;
+using Crawlers.BusinessLogics.Services.TPCA;
 using Crawlers.Src.Utility.Https;
 
 namespace Crawlers.Extensions;
@@ -14,6 +16,7 @@ public static class IServiceCollectionExtensions
         // Service
         services.AddScoped<ICompaniesDataService, CompaniesDataService>();
         services.AddScoped<TpcaScraperService>();
+        services.AddScoped<TeeiaScraperService>();
 
         return services;
     }
