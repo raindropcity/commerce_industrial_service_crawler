@@ -2,8 +2,7 @@
 using HtmlAgilityPack;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
-using System.Text;
-using static System.Net.WebRequestMethods;
+using Crawlers.Src.Utility.Helpers;
 
 namespace Crawlers.BusinessLogics.Services.TEEIA;
 
@@ -40,7 +39,7 @@ public class TeeiaScraperService
         );
         var totalPageStr = node.GetAttributeValue("bk-total-page", "");
 
-        if(!int.TryParse(totalPageStr, out int maxPage)) 
+        if (!int.TryParse(totalPageStr, out int maxPage))
         {
             _logger.LogWarning($"無法解析最大頁數，預設為 1。原始值：{totalPageStr}");
             maxPage = 1;
@@ -61,7 +60,7 @@ public class TeeiaScraperService
             foreach (var url in GetCompanyDetailUrls(html))
                 companyUrls.Add(url);
 
-            await Task.Delay(300); // 禮貌
+            await Task.Delay(100); // 禮貌
         }
 
         _logger.LogInformation($"公司資訊頁 URL 數量 = {companyUrls.Count}");
@@ -96,37 +95,36 @@ public class TeeiaScraperService
                 });
             }
 
-            await Task.Delay(300);
+            await Task.Delay(100);
         }
 
-        // 處理寫入 CSV
+        // 4) 處理寫入 CSV
         _logger.LogInformation("Generating CSV file...");
-        var responseCsvContent = new StringBuilder();
-        responseCsvContent.AppendLine("公司名稱,電話,地址,業務窗口,業務窗口Email");
+        var lines = new List<string>
+        {
+            "公司名稱,電話,地址,業務窗口,業務窗口Email"
+        };
 
         foreach (var item in results)
         {
-            responseCsvContent.AppendLine($"{item.CompanyNameZh},{item.Phone},{item.Address},{item.ContactPerson},{item.Email}");
+            lines.Add($"{item.CompanyNameZh},{item.Phone},{item.Address},{item.ContactPerson},{item.Email}");
         }
 
-        var localPath = Path.GetTempPath();
         var csvFileName = "TeeiaData.csv";
-        var csvFilePath = Path.Combine(localPath, csvFileName);
-        await System.IO.File.WriteAllTextAsync(csvFilePath, responseCsvContent.ToString());
+        var csvFile = await CsvFileHelper.CreateFileStreamResultAsync(lines, csvFileName);
 
-        var memory = new MemoryStream();
-        using (var stream = new FileStream(csvFilePath, FileMode.Open))
-        {
-            await stream.CopyToAsync(memory);
-        }
-        memory.Position = 0;
-
-        // 刪除臨時檔案
-        System.IO.File.Delete(csvFilePath);
-
-        return new FileStreamResult(memory, "text/csv") { FileDownloadName = csvFileName };
+        _logger.LogInformation("Complete CSV file generation.");
+        return csvFile;
     }
 
+    /// <summary>
+    /// 取得 HTML 結構字串，並在失敗時重試（最多重試 maxRetry 次，每次重試間隔逐漸增加）
+    /// </summary>
+    /// <param name="http">The HttpClient instance used to send the request.</param>
+    /// <param name="url">The URL to request.</param>
+    /// <param name="maxRetry">The maximum number of retry attempts.</param>
+    /// <returns>A task representing the asynchronous operation, with the response body as a string.</returns>
+    /// <exception cref="Exception">Thrown if all retry attempts fail.</exception>
     private async Task<string> GetStringWithRetry(HttpClient http, string url, int maxRetry = 3)
     {
         Exception? last = null;
@@ -147,28 +145,11 @@ public class TeeiaScraperService
         throw new Exception($"GET 失敗（已重試 {maxRetry} 次）：{url}", last);
     }
 
-    private int GetMaxPage(string listHtml)
-    {
-        var doc = LoadDoc(listHtml);
-
-        // XPath：抓所有 class 含 page 與 bk-page 的 div，且有 data-page
-        var nodes = doc.DocumentNode.SelectNodes(
-            "//div[contains(@class,'page') and contains(@class,'bk-page') and @data-page]"
-        );
-
-        if (nodes == null || nodes.Count == 0)
-            return 1;
-
-        int max = 1;
-        foreach (var n in nodes)
-        {
-            var s = n.GetAttributeValue("data-page", "");
-            if (int.TryParse(s, out var p))
-                max = Math.Max(max, p);
-        }
-        return max;
-    }
-
+    /// <summary>
+    /// Parses the specified HTML string into an HtmlDocument with nested tag correction enabled.
+    /// </summary>
+    /// <param name="html">The HTML content to parse.</param>
+    /// <returns>An HtmlDocument representing the parsed HTML.</returns>
     private HtmlDocument LoadDoc(string html)
     {
         var doc = new HtmlDocument
@@ -179,10 +160,16 @@ public class TeeiaScraperService
         return doc;
     }
 
+    /// <summary>
+    /// Extracts company detail URLs from the provided HTML containing a list of companies.
+    /// </summary>
+    /// <param name="listHtml">The HTML string representing the list of companies.</param>
+    /// <returns>An enumerable collection of company detail URLs found in the HTML.</returns>
     private IEnumerable<string> GetCompanyDetailUrls(string listHtml)
     {
         var doc = LoadDoc(listHtml);
 
+        //// 目標的 anchor 元素具有 class="pic-box"，因此使用 XPath "//a[contains(@class,'pic-box')]" 來選取這些元素
         var nodes = doc.DocumentNode.SelectNodes(
             "//a[contains(@class,'pic-box')]"
         );
@@ -191,12 +178,19 @@ public class TeeiaScraperService
 
         foreach (var n in nodes)
         {
+            //// 抽取 anchor 元素的 href 屬性 value，以獲得目標 url
             var url = n.GetAttributeValue("href", "").Trim();
             if (!string.IsNullOrWhiteSpace(url))
                 yield return url;
         }
     }
 
+    /// <summary>
+    /// Parses company contact information from the provided HTML and returns a TeeiaMemberDto with extracted details.
+    /// </summary>
+    /// <param name="detailHtml">The HTML string containing the company contact details.</param>
+    /// <param name="sourceUrl">The source URL associated with the company contact information.</param>
+    /// <returns>A TeeiaMemberDto populated with company name, address, contact person, phone, email, and source URL.</returns>
     private TeeiaMemberDto ParseCompanyContact(string detailHtml, string sourceUrl)
     {
         const string KeyCompanyName = "企業中文名稱";
@@ -241,6 +235,12 @@ public class TeeiaScraperService
         };
     }
 
+    /// <summary>
+    /// Cleans and normalizes a string by decoding HTML entities, trimming whitespace and quotation marks, and
+    /// collapsing multiple spaces into one.
+    /// </summary>
+    /// <param name="s">The input string to clean and normalize.</param>
+    /// <returns>A cleaned and normalized string, or an empty string if the input is null or whitespace.</returns>
     private string CleanText(string? s)
     {
         if (string.IsNullOrWhiteSpace(s)) return "";

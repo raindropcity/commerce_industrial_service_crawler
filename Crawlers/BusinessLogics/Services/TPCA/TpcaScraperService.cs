@@ -2,7 +2,7 @@
 using Crawlers.Src.Utility.Https;
 using HtmlAgilityPack;
 using Microsoft.AspNetCore.Mvc;
-using System.Text;
+using Crawlers.Src.Utility.Helpers;
 
 namespace Crawlers.BusinessLogics.Services.TPCA;
 
@@ -117,29 +117,20 @@ public class TpcaScraperService
 
         // 3. 處理寫入 CSV
         _logger.LogInformation("Generating CSV file...");
-        var responseCsvContent = new StringBuilder();
-        responseCsvContent.AppendLine("公司名稱,電話,地址,業務窗口,業務窗口Email");
+        var lines = new List<string>
+        {
+            "公司名稱,電話,地址,業務窗口,業務窗口Email"
+        };
 
         foreach (var item in result)
         {
-            responseCsvContent.AppendLine($"{item.CompanyName},{item.Phone},{item.Address},{item.Contact},{item.Email}");
+            lines.Add($"{item.CompanyName},{item.Phone},{item.Address},{item.Contact},{item.Email}");
         }
 
-        var localPath = Path.GetTempPath();
         var csvFileName = "TpcaData.csv";
-        var csvFilePath = Path.Combine(localPath, csvFileName);
-        await File.WriteAllTextAsync(csvFilePath, responseCsvContent.ToString());
+        var csvFile = await CsvFileHelper.CreateFileStreamResultAsync(lines, csvFileName);
 
-        var memory = new MemoryStream();
-        using (var stream = new FileStream(csvFilePath, FileMode.Open))
-        {
-            await stream.CopyToAsync(memory);
-        }
-        memory.Position = 0;
-
-        // 4. 刪除臨時檔案
-        File.Delete(csvFilePath);
-
-        return new FileStreamResult(memory, "text/csv") { FileDownloadName = csvFileName };
+        _logger.LogInformation("Complete CSV file generation.");
+        return csvFile;
     }
 }

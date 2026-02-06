@@ -2,7 +2,7 @@
 using Crawlers.BusinessLogics.Services.Interfaces;
 using Crawlers.Src.Utility.Https;
 using Microsoft.AspNetCore.Mvc;
-using System.Text;
+using Crawlers.Src.Utility.Helpers;
 
 namespace Crawlers.BusinessLogics.Services;
 
@@ -39,11 +39,11 @@ public class CompaniesDataService : ICompaniesDataService
         // 1. 讀取檔案
         using var reader = new StreamReader(csvFile.OpenReadStream());
         var csvContent = await reader.ReadToEndAsync();
-        var lines = csvContent.Split('\n').Skip(1); // Skip header
+        var inputLines = csvContent.Split('\n').Skip(1); // Skip header
 
         // 2. 將檔案內容轉換為儲存公司名稱及公司狀態的 Entity 列表
         var request = new List<GetCompanyDataRequest>();
-        foreach (var line in lines)
+        foreach (var line in inputLines)
         {
             if (string.IsNullOrWhiteSpace(line)) continue;
             var columns = line.Split(',');
@@ -67,41 +67,22 @@ public class CompaniesDataService : ICompaniesDataService
         }
 
         // 4. 將取得的公司資料寫入檔案，回傳 csv 檔案
-        var responseCsvContent = new StringBuilder();
-        responseCsvContent.AppendLine("統一編號,公司名稱,公司狀態,公司資本額,實收資本額,代表人,地址,核准設立日期,核准變更日期");
+        _logger.LogInformation("Generating CSV file...");
+        var lines = new List<string>
+        {
+            "統一編號,公司名稱,公司狀態,公司資本額,實收資本額,代表人,地址,核准設立日期,核准變更日期"
+        };
 
         foreach (var response in responseList)
         {
-            //responseCsvContent.AppendLine(string.Format("{0},{1},{2},{3},{4},{5},{6},{7},{8}",
-            //    string.IsNullOrWhiteSpace(response.Business_Accounting_NO) ? "查無資料" : response.Business_Accounting_NO,
-            //    string.IsNullOrWhiteSpace(response.Company_Name),
-            //    string.IsNullOrWhiteSpace(response.Company_Status_Desc),
-            //    response.Capital_Stock_Amount,
-            //    response.Paid_In_Capital_Amount,
-            //    string.IsNullOrWhiteSpace(response.Responsible_Name),
-            //    string.IsNullOrWhiteSpace(response.Company_Location),
-            //    string.IsNullOrWhiteSpace(response.Company_Location),
-            //    string.IsNullOrWhiteSpace(response.Company_Setup_Date),
-            //    string.IsNullOrWhiteSpace(response.Change_Of_Approval_Data)));
-            responseCsvContent.AppendLine($"{response.Business_Accounting_NO},{response.Company_Name},{response.Company_Status_Desc},{response.Capital_Stock_Amount},{response.Paid_In_Capital_Amount},{response.Responsible_Name},{response.Company_Location},{response.Company_Setup_Date},{response.Change_Of_Approval_Data}");
+            lines.Add($"{response.Business_Accounting_NO},{response.Company_Name},{response.Company_Status_Desc},{response.Capital_Stock_Amount},{response.Paid_In_Capital_Amount},{response.Responsible_Name},{response.Company_Location},{response.Company_Setup_Date},{response.Change_Of_Approval_Data}");
         }
 
-        var localPath = Path.GetTempPath();
         var csvFileName = "CompanyData.csv";
-        var csvFilePath = Path.Combine(localPath, csvFileName);
-        await File.WriteAllTextAsync(csvFilePath, responseCsvContent.ToString());
+        var csvResultFile = await CsvFileHelper.CreateFileStreamResultAsync(lines, csvFileName);
 
-        var memory = new MemoryStream();
-        using (var stream = new FileStream(csvFilePath, FileMode.Open))
-        {
-            await stream.CopyToAsync(memory);
-        }
-        memory.Position = 0;
-
-        // 5. 刪除臨時檔案
-        File.Delete(csvFilePath);
-
-        return new FileStreamResult(memory, "text/csv") { FileDownloadName = csvFileName };
+        _logger.LogInformation("Complete CSV file generation.");
+        return csvResultFile;
     }
 
     /// <summary>
