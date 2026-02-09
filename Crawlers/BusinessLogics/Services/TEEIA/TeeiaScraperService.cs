@@ -33,19 +33,18 @@ public class TeeiaScraperService : HtmlScraperServiceBase
     {
         // 1) 最大頁數
         _logger.LogInformation("1) 取得最大頁數...");
-        //var firstListHtml = await GetStringWithRetry(_http, string.Format(BaseListUrl, 1));
-        //var doc = LoadDoc(firstListHtml);
-        //var node = doc.DocumentNode.SelectSingleNode(
-        //    "//div[contains(@class,'pagePagination')]"
-        //);
-        //var totalPageStr = node.GetAttributeValue("bk-total-page", "");
+        var firstListHtml = await GetStringWithRetry(_http, string.Format(BaseListUrl, 1));
+        var doc = LoadDoc(firstListHtml);
+        var node = doc.DocumentNode.SelectSingleNode(
+            "//div[contains(@class,'pagePagination')]"
+        );
+        var totalPageStr = node.GetAttributeValue("bk-total-page", "");
 
-        //if (!int.TryParse(totalPageStr, out int maxPage))
-        //{
-        //    _logger.LogWarning($"無法解析最大頁數，預設為 1。原始值：{totalPageStr}");
-        //    maxPage = 1;
-        //}
-        var maxPage = 1;
+        if (!int.TryParse(totalPageStr, out int maxPage))
+        {
+            _logger.LogWarning($"無法解析最大頁數，預設為 1。原始值：{totalPageStr}");
+            maxPage = 1;
+        }
         _logger.LogInformation($"最大頁數 = {maxPage}");
 
         // 2) 逐頁收集公司資訊頁 URL
