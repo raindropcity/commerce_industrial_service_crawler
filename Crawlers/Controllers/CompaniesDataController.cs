@@ -2,6 +2,7 @@ using Crawlers.BusinessLogics.Models.TPCA;
 using Crawlers.BusinessLogics.Services.Interfaces;
 using Crawlers.BusinessLogics.Services.TEEIA;
 using Crawlers.BusinessLogics.Services.TPCA;
+using Crawlers.BusinessLogics.Services.TPCIA;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Crawlers.Controllers;
@@ -56,6 +57,19 @@ public class CompaniesDataController : ControllerBase
     [Route("teeia")]
     public async Task<FileStreamResult> GetTeeiaInfoByHtml(
         [FromServices] TeeiaScraperService service)
+    {
+        return await service.ScrapeAsync();
+    }
+
+    /// <summary>
+    /// 自動化至 TPCIA 網站抽取公司聯絡資料
+    /// </summary>
+    /// <param name="service">The service.</param>
+    /// <returns>公司聯絡資料 CSV 檔</returns>
+    [HttpGet]
+    [Route("tpcia")]
+    public async Task<FileStreamResult> GetTpciaInfoByHtml(
+        [FromServices] TpciaScraperService service)
     {
         return await service.ScrapeAsync();
     }
