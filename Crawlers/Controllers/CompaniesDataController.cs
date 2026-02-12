@@ -1,4 +1,5 @@
 using Crawlers.BusinessLogics.Models.TPCA;
+using Crawlers.BusinessLogics.Services.ASIP;
 using Crawlers.BusinessLogics.Services.Interfaces;
 using Crawlers.BusinessLogics.Services.TEEIA;
 using Crawlers.BusinessLogics.Services.TPCA;
@@ -70,6 +71,19 @@ public class CompaniesDataController : ControllerBase
     [Route("tpcia")]
     public async Task<FileStreamResult> GetTpciaInfoByHtml(
         [FromServices] TpciaScraperService service)
+    {
+        return await service.ScrapeAsync();
+    }
+
+    /// <summary>
+    /// 自動化至 ASIP 網站抽取公司聯絡資料
+    /// </summary>
+    /// <param name="service">The service.</param>
+    /// <returns>公司聯絡資料 CSV 檔</returns>
+    [HttpGet]
+    [Route("asip")]
+    public async Task<FileStreamResult> GetAsipInfoByHtml(
+        [FromServices] AsipScraperService service)
     {
         return await service.ScrapeAsync();
     }

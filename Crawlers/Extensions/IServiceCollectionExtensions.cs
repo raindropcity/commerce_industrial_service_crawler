@@ -1,4 +1,5 @@
 ﻿using Crawlers.BusinessLogics.Services;
+using Crawlers.BusinessLogics.Services.ASIP;
 using Crawlers.BusinessLogics.Services.Interfaces;
 using Crawlers.BusinessLogics.Services.TEEIA;
 using Crawlers.BusinessLogics.Services.TPCA;
@@ -19,6 +20,7 @@ public static class IServiceCollectionExtensions
         services.AddScoped<TpcaScraperService>();
         services.AddScoped<TeeiaScraperService>();
         services.AddScoped<TpciaScraperService>();
+        services.AddScoped<AsipScraperService>();
 
         return services;
     }
